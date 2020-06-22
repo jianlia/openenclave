@@ -31,17 +31,20 @@ typedef struct _oe_sgx_enclave_image_info_t
 // oe_sgx_enclave_properties_t SGX enclave properties derived type
 #define OE_SGX_FLAGS_DEBUG 0x0000000000000002ULL
 #define OE_SGX_FLAGS_MODE64BIT 0x0000000000000004ULL
+#define OE_SGX_FLAGS_KSS 0x0000000000000080ULL
 #define OE_SGX_SIGSTRUCT_SIZE 1808
 
 typedef struct oe_sgx_enclave_config_t
 {
     uint16_t product_id;
     uint16_t security_version;
+    uint8_t isv_family_id[16];
+    uint8_t isv_ext_product_id[16];
 
     /* Padding to make packed and unpacked size the same */
     uint32_t padding;
 
-    /* (OE_SGX_FLAGS_DEBUG | OE_SGX_FLAGS_MODE64BIT) */
+    /* (OE_SGX_FLAGS_DEBUG | OE_SGX_FLAGS_MODE64BIT | OE_SGX_FLAGS_KSS) */
     uint64_t attributes;
 
     /* XSave Feature Request Mask */
@@ -73,6 +76,9 @@ typedef struct _oe_sgx_enclave_properties
 
 #define OE_MAKE_ATTRIBUTES(ALLOW_DEBUG) \
     (OE_SGX_FLAGS_MODE64BIT | (ALLOW_DEBUG ? OE_SGX_FLAGS_DEBUG : 0))
+
+#define OE_MAKE_ATTRIBUTES_EX(ALLOW_KSS, ALLOW_DEBUG) \
+    (OE_SGX_FLAGS_MODE64BIT | (ALLOW_KSS ? OE_SGX_FLAGS_KSS : 0) | (ALLOW_DEBUG ? OE_SGX_FLAGS_DEBUG : 0))
 
 // This macro initializes and injects an oe_sgx_enclave_properties_t struct
 // into the .oeinfo section.
@@ -137,6 +143,74 @@ typedef struct _oe_sgx_enclave_properties
         .end_marker = 0xecececececececec,                                 \
     };                                                                    \
     OE_INFO_SECTION_END
+// clang-format on
+
+/**
+ * Defines the SGX properties for an enclave.
+ *
+ * The enclave properties should only be defined once for all code compiled into
+ * an enclave binary. These properties can be overwritten at sign time by
+ * the oesign tool.
+ *
+ * @param PRODUCT_ID ISV assigned Product ID (ISVPRODID) to use in the
+ * enclave signature
+ * @param SECURITY_VERSION ISV assigned Security Version number (ISVSVN)
+ * to use in the enclave signature
+ * @param ALLOW_DEBUG If true, allows the enclave to be created with
+ * OE_ENCLAVE_FLAG_DEBUG and debugged at runtime
+ * @param HEAP_PAGE_COUNT Number of heap pages to allocate in the enclave
+ * @param STACK_PAGE_COUNT Number of stack pages per thread to reserve in
+ * the enclave
+ * @param TCS_COUNT Number of concurrent threads in an enclave to support
+ */
+// Note: disable clang-format since it badly misformats this macro
+// clang-format off
+
+#define OE_SET_ENCLAVE_SGX_KSS(                                               \
+    PRODUCT_ID,                                                           \
+    SECURITY_VERSION,                                                     \
+    ALLOW_DEBUG,                                                          \
+    HEAP_PAGE_COUNT,                                                      \
+    STACK_PAGE_COUNT,                                                     \
+    TCS_COUNT,                                                     \
+    ISV_FAMILY_ID,                                                     \
+    ISV_EXT_PRODUCT_ID)                                                            \
+    OE_INFO_SECTION_BEGIN                                                 \
+    volatile const oe_sgx_enclave_properties_t oe_enclave_properties_sgx = \
+    {                                                                     \
+        .header =                                                         \
+        {                                                                 \
+            .size = sizeof(oe_sgx_enclave_properties_t),                  \
+            .enclave_type = OE_ENCLAVE_TYPE_SGX,                          \
+            .size_settings =                                              \
+            {                                                             \
+                .num_heap_pages = HEAP_PAGE_COUNT,                        \
+                .num_stack_pages = STACK_PAGE_COUNT,                      \
+                .num_tcs = TCS_COUNT                                      \
+            }                                                             \
+        },                                                                \
+        .config =                                                         \
+        {                                                                 \
+            .product_id = PRODUCT_ID,                                     \
+            .security_version = SECURITY_VERSION,                         \
+            .isv_family_id = ISV_FAMILY_ID,                               \
+            .isv_ext_product_id = ISV_EXT_PRODUCT_ID,                     \
+            .padding = 0,                                                 \
+            .attributes = OE_MAKE_ATTRIBUTES_EX(TRUE, ALLOW_DEBUG)                 \
+        },                                                                \
+        .image_info =                                                     \
+        {                                                                 \
+            0, 0, 0, 0, 0, 0                                              \
+        },                                                                \
+        .sigstruct =                                                      \
+        {                                                                 \
+            0                                                             \
+        },                                                                \
+        .end_marker = 0xecececececececec,                                 \
+    };                                                                    \
+    OE_INFO_SECTION_END
+
+
 
 // clang-format on
 

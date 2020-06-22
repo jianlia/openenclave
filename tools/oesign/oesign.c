@@ -22,7 +22,9 @@ typedef struct _config_file_options
     uint64_t num_tcs;
     uint16_t product_id;
     uint16_t security_version;
-} config_file_options_t;
+    oe_uuid_t isv_family_id;
+    oe_uuid_t isv_ext_product_id;
+} ConfigFileOptions;
 
 #define CONFIG_FILE_OPTIONS_INITIALIZER                                 \
     {                                                                   \
@@ -88,6 +90,19 @@ static int _load_config_file(const char* path, config_file_options_t* options)
             }
 
             options->debug = (bool)value;
+        }
+        else if (strcmp(str_ptr(&lhs), "Kss") == 0)
+        {
+            uint64_t value;
+
+            // Debug must be 0 or 1
+            if (str_u64(&rhs, &value) != 0 || (value > 1))
+            {
+                oe_err("%s(%zu): 'Kss' value must be 0 or 1", path, line);
+                goto done;
+            }
+
+            options->kss = (bool)value;
         }
         else if (strcmp(str_ptr(&lhs), "NumHeapPages") == 0)
         {
@@ -173,6 +188,38 @@ static int _load_config_file(const char* path, config_file_options_t* options)
             }
 
             options->security_version = n;
+        }
+        else if (strcmp(str_ptr(&lhs), "IsvFamilyID") == 0)
+        {
+            TEEC_UUID id;
+
+            if (uuid_from_string(&rhs, &id) != 0)
+            {
+                oe_err(
+                    "%s(%zu): bad value for 'IsvFamilyID': %s",
+                    path,
+                    line,
+                    str_ptr(&rhs));
+                goto done;
+            }
+
+            memcpy(&options->isv_family_id, &id, 16);
+        }
+        else if (strcmp(str_ptr(&lhs), "IsvExtProductID") == 0)
+        {
+            TEEC_UUID id;
+
+            if (uuid_from_string(&rhs, &id) != 0)
+            {
+                oe_err(
+                    "%s(%zu): bad value for 'IsvExtProductID': %s",
+                    path,
+                    line,
+                    str_ptr(&rhs));
+                goto done;
+            }
+
+            memcpy(&options->isv_ext_product_id, &id, 16);
         }
         else
         {
@@ -299,6 +346,10 @@ void _merge_config_file_options(
     if (options->debug)
         properties->config.attributes |= SGX_FLAGS_DEBUG;
 
+    /* Kss option is present */
+    if (options->kss)
+        properties->config.attributes |= SGX_FLAGS_KSS;
+
     /* If ProductID option is present */
     if (options->product_id != OE_UINT16_MAX)
         properties->config.product_id = options->product_id;
@@ -306,6 +357,12 @@ void _merge_config_file_options(
     /* If SecurityVersion option is present */
     if (options->security_version != OE_UINT16_MAX)
         properties->config.security_version = options->security_version;
+
+    if (options->kss)
+    {
+        memcpy(properties->config.isv_family_id, &options->isv_family_id, 16);
+        memcpy(properties->config.isv_ext_product_id, &options->isv_ext_product_id, 16);
+    }
 
     /* If NumHeapPages option is present */
     if (options->num_heap_pages != OE_UINT64_MAX)
@@ -471,6 +528,8 @@ int oesign(
                 engine_id,
                 engine_load_path,
                 key_id,
+                NULL,
+                NULL,
                 (sgx_sigstruct_t*)properties.sigstruct),
             "oe_sgx_sign_enclave_from_engine() failed: result=%s (%#x)",
             oe_result_str(result),
@@ -542,7 +601,9 @@ int oesign(
                 properties.config.security_version,
                 pem_data,
                 pem_size,
-                (sgx_sigstruct_t*)properties.sigstruct),
+                props.config.isv_family_id,
+                props.config.isv_ext_product_id,
+                (sgx_sigstruct_t*)props.sigstruct),
             "oe_sgx_sign_enclave() failed: result=%s (%#x)",
             oe_result_str(result),
             result);
