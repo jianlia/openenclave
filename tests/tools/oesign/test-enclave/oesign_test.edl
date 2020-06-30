@@ -8,5 +8,8 @@ enclave {
 
     trusted {
         public bool is_test_signed();
+        public oe_result_t is_kss_extendedids_match(
+            [in] oe_uuid_t family_id,
+            [in] oe_uuid_t ext_product_id);
     };
 };

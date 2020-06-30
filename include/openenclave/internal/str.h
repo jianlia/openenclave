@@ -428,9 +428,9 @@ MEM_INLINE int str_split(str_t* str, const char* delim, str_t* lhs, str_t* rhs)
     return 0;
 }
 
-MEM_INLINE inline unsigned char hex2char(char ch)
+MEM_INLINE unsigned char hex2char(char ch)
 {
-    if (ch >= '0') && ch <= ('9'))
+    if (ch >= '0' && ch <= '9')
         return ch - '0';
     if (ch >= 'a' && ch <= 'f')
         return 10 + ch - 'a';
@@ -439,19 +439,19 @@ MEM_INLINE inline unsigned char hex2char(char ch)
     return 0;
 }
 
-MEM_INLINE inline bool is_hex(char ch)
+MEM_INLINE bool is_hex(char ch)
 {
     return (ch >= '0' && ch <= '9') ||
            (ch >= 'a' && ch <= 'f') ||
            (ch >= 'A' && ch <= 'F');
 }
 
-MEM_INLINE inline unsigned char hexpair2char(char a, char b)
+MEM_INLINE unsigned char hexpair2char(char a, char b)
 {
-    return (hex2char(a) << 4) | hex2char(b);
+    return (unsigned char)((hex2char(a) << 4) | hex2char(b));
 }
 
-MEM_INLINE int uuid_from_string(str_t* str, oe_uuid_t* uuid)
+MEM_INLINE int uuid_from_string(str_t* str, uint8_t* uuid)
 {
     int i;
     size_t index = 0;
@@ -465,11 +465,11 @@ MEM_INLINE int uuid_from_string(str_t* str, oe_uuid_t* uuid)
     if (size != 36)
         return -1;
 
-    index = 0
+    index = 0;
 
     for (size_t i = 0; i < size; ++i)
     {
-        if (id_copy[i] == '-'))
+        if (id_copy[i] == '-')
             continue;
 
         if (index >= 16 || !is_hex(id_copy[i]))
@@ -484,7 +484,7 @@ MEM_INLINE int uuid_from_string(str_t* str, oe_uuid_t* uuid)
         }
         else
         {
-            data[index++] = hexpair2char(value, id_copy[i]);
+            uuid[index++] = hexpair2char(value, id_copy[i]);
             firstDigit = true;
         }
     }

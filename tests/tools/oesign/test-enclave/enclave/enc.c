@@ -52,3 +52,52 @@ bool is_test_signed()
 
     return is_test_signed;
 }
+
+oe_result_t is_kss_extendedids_match(oe_uuid_t family_id, oe_uuid_t ext_product_id)
+{
+
+    bool is_ext_prodid_same = false;
+    oe_result_t result = OE_UNEXPECTED;
+    uint8_t* report_data = NULL;
+    size_t report_size = OE_MAX_REPORT_SIZE;
+    uint8_t* remote_report = nullptr;
+    oe_report_header_t* header = nullptr;
+    sgx_quote_t* quote = nullptr;
+    uint64_t quote_size = 0;
+
+    log("========== Getting report\n");
+
+    oe_result_t result = oe_get_report(
+        enclave,
+        OE_REPORT_FLAGS_REMOTE_ATTESTATION,
+        nullptr, // opt_params must be null
+        0,
+        (uint8_t**)&remote_report,
+        &report_size);
+    if (result == OE_OK)
+    {
+        log("========== Got report, size = %zu\n\n", report_size);
+
+        header = (oe_report_header_t*)remote_report;
+        quote = (sgx_quote_t*)header->report;
+        quote_size = header->report_size;
+
+        sgx_report_body_t* report_body =
+            (sgx_report_body_t*)&quote->report_body;
+
+            printf("FamilyID: ");
+        oe_hex_dump(report_body->isvfamilyid, 16);
+
+        printf("ExtProductID: ");
+        oe_hex_dump(report_body->isvextprodid, 16);
+
+        if (!memcmp(report_body->isvfamilyid, &family_id, 16) ||
+            !memcmp(report_body->isvextprodid, &ext_product_id, 16))
+            result = OE_REPORT_PARSE_ERROR;
+
+
+    }
+    oe_free_report(remote_report);
+
+    return result;
+}

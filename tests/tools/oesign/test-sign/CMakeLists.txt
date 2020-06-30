@@ -107,3 +107,57 @@ set_tests_properties(
   PROPERTIES
     PASS_REGULAR_EXPRESSION
     "ERROR: Invalid enclave property value: header.size_settings.num_tcs")
+
+# Test valid kss properties argument
+add_test(NAME tests/oesign-sign-valid-kss
+         COMMAND oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+                 ${OESIGN_TEST_INPUTS_DIR}/kss_valid.conf)
+
+set_tests_properties(
+  tests/oesign-sign-valid-kss
+  PROPERTIES PASS_REGULAR_EXPRESSION
+             "PASS: Launch of signed enclave with KSS succeeded ")
+
+# Test invalid kss properties argument ExtProdID too long
+add_test(NAME tests/oesign-sign-extprodid-toolong
+         COMMAND oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+                 ${OESIGN_TEST_INPUTS_DIR}/ext_prod_id_toolong.conf)
+
+set_tests_properties(
+  tests/oesign-sign-extprodid-toolong
+  PROPERTIES 
+    PASS_REGULAR_EXPRESSION
+    "ERROR: Failed: Extended Product ID too long")
+
+# Test invalid kss properties argument ExtProdID too short
+add_test(NAME tests/oesign-sign-extprodid-tooshort
+         COMMAND oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+                 ${OESIGN_TEST_INPUTS_DIR}/ext_prod_id_tooshort.conf)
+
+set_tests_properties(
+  tests/oesign-sign-extprodid-tooshort
+  PROPERTIES 
+    PASS_REGULAR_EXPRESSION
+    "ERROR: Failed: Extended Product ID too short")
+
+# Test invalid kss properties argument -ExtProdID too short
+add_test(NAME tests/oesign-sign-familyid-toolong
+         COMMAND oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+                 ${OESIGN_TEST_INPUTS_DIR}/family_id_toolong.conf)
+
+set_tests_properties(
+  tests/oesign-sign-familyid-toolong
+  PROPERTIES 
+    PASS_REGULAR_EXPRESSION
+    "ERROR: Failed: ISV family ID too long")
+
+# Test invalid kss properties argument -FamilyID too short
+add_test(NAME tests/oesign-sign-familyid-tooshort
+         COMMAND oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+                 ${OESIGN_TEST_INPUTS_DIR}/family_id_tooshort.conf)
+
+set_tests_properties(
+  tests/oesign-sign-familyid-tooshort
+  PROPERTIES 
+    PASS_REGULAR_EXPRESSION
+    "ERROR: Failed: ISV family ID too short")

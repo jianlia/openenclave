@@ -668,6 +668,8 @@ static oe_result_t _eeid_resign(
             properties->config.security_version,
             OE_DEBUG_SIGN_KEY,
             OE_DEBUG_SIGN_KEY_SIZE,
+            NULL,
+            NULL,
             sigstruct));
     }
 

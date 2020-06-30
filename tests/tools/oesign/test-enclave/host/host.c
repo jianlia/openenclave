@@ -3,7 +3,9 @@
 
 #include <openenclave/host.h>
 #include <openenclave/internal/error.h>
+#include <openenclave/internal/load.h>
 #include <openenclave/internal/tests.h>
+#include <openenclave/internal/load.h>
 #include <stdio.h>
 
 #include "oesign_test_u.h"
@@ -11,12 +13,28 @@
 int main(int argc, const char* argv[])
 {
     oe_result_t result;
+    oe_result_t ecall_result;
     oe_enclave_t* enclave = NULL;
+    oe_enclave_image_t oeimage;
     bool is_signed = false;
+    oe_sgx_enclave_properties_t properties;
 
     if (argc != 2)
     {
         oe_put_err("Usage: %s enclave_image_path\n", argv[0]);
+    }
+
+    /* Load the ELF image */
+    if ((result = oe_load_enclave_image(path, &oeimage) != OE_OK)
+    {
+        oe_put_err("oe_load_enclave_image(): result=%u", result);
+    }
+
+    /* Load the SGX enclave properties */
+    if (result = oe_sgx_load_enclave_properties(
+            &oeimage, OE_INFO_SECTION_NAME, properties) != OE_OK)
+    {
+        oe_put_err("oe_sgx_load_enclave_properties(): result=%u", result);
     }
 
     // Create the enclave
@@ -47,6 +65,23 @@ int main(int argc, const char* argv[])
         {
             oe_put_err("%s is signed with a default debug signature", argv[1]);
         }
+
+        if (properties.config.attribute & OE_SGX_FLAGS_KSS)
+        {
+            result = is_kss_extendedids_match(
+                enclave,
+                &ecall_result,
+                (oe_uuid_t)properties.config.isv_family_id,
+                (oe_uuid_t)properties.config.isv_ext_product_id);
+            if result != OE_OK || ecall_result != OE_OK)
+            {
+                oe_put_err(
+                    "verify_signed() failed: Enclave: %s, Host: %s\n"
+                    ", 
+                    oe_result_str(ecall_result),
+                    oe_result_str(result));
+            }
+        }        
     }
 
     if ((result = oe_terminate_enclave(enclave)) != OE_OK)

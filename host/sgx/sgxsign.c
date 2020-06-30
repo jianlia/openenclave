@@ -575,7 +575,6 @@ static oe_result_t _init_sigstruct(
     uint64_t attributes,
     uint16_t product_id,
     uint16_t security_version,
-    const oe_rsa_private_key_t* rsa,
     const uint8_t* isv_family_id,
     const uint8_t* isv_ext_product_id,
     sgx_sigstruct_t* sigstruct)
